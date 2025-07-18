@@ -1,0 +1,99 @@
+services:
+
+  traefik:
+    image: traefik:latest
+    command:
+      - "--api.dashboard=true"
+      - "--providers.docker=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--certificatesresolvers.myresolver.acme.tlschallenge=true"
+      - "--certificatesresolvers.myresolver.acme.email=${EMAIL_ACME}"
+      - "--certificatesresolvers.myresolver.acme.storage=/letsencrypt/acme.json"
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      - "letsencrypt:/letsencrypt"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`${TRAEFIK_DOMAIN}`)
+      - traefik.http.routers.api.service=api@internal
+      - traefik.http.routers.api.entrypoints=websecure
+      - traefik.http.routers.api.tls.certresolver=myresolver
+    networks:
+      - traefik
+
+  portainer:
+    image: portainer/portainer-ce:latest
+    restart: always
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+      - "portainer_data:/data"
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portainer.rule=Host(`${PORTAINER_DOMAIN}`)
+      - traefik.http.routers.portainer.entrypoints=websecure
+      - traefik.http.routers.portainer.tls.certresolver=myresolver
+    networks:
+      - traefik
+
+  postgres:
+    image: pgvector/pgvector:latest
+    restart: always
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - backend
+
+  weaviate:
+    image: semitechnologies/weaviate:latest
+    restart: always
+    environment:
+      QUERY_DEFAULTS_LIMIT: 25
+      AUTHENTICATION_ANONYMOUS_ACCESS_ENABLED: "true"
+      PERSISTENCE_DATA_PATH: "/var/lib/weaviate"
+      DEFAULT_VECTORIZER_MODULE: "none"
+      ENABLE_MODULES: "none"
+    volumes:
+      - weaviate_data:/var/lib/weaviate
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.weaviate.rule=Host(`${WEAVIATE_DOMAIN}`)
+      - traefik.http.routers.weaviate.entrypoints=websecure
+      - traefik.http.routers.weaviate.tls.certresolver=myresolver
+    networks:
+      - backend
+      - traefik
+
+  api:
+    build: ./app
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.api.rule=Host(`${API_DOMAIN}`)
+      - traefik.http.routers.api.entrypoints=websecure
+      - traefik.http.routers.api.tls.certresolver=myresolver
+    networks:
+      - backend
+      - traefik
+
+volumes:
+  postgres_data:
+  weaviate_data:
+  portainer_data:
+  letsencrypt:
+
+networks:
+  traefik:
+    external: true
+  backend:
+    driver: bridge

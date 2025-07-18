@@ -1,5 +1,12 @@
 # Benchmark vectoriel : PostgreSQL + pgvector vs Weaviate
 
+📍 Objectif : comparaison vectorielle Weaviate vs pgvector
+
+📌 Pas de front. Pas de LLM génératif. Pas de RAG. Pas de storytelling.
+📌 Juste du texte, du vecteur, des requêtes, du benchmark.
+
+---
+
 Ce projet est un Proof of Concept (PoC) destiné à évaluer les performances et les usages comparés de deux systèmes de vectorisation et de recherche sémantique :
 
 - **PostgreSQL + pgvector**

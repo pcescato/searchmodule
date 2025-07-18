@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+psycopg[binary]
+sqlalchemy           # SQLAlchemy Core (pas d’ORM)
+pgvector
+weaviate-client
+spacy
+python-dotenv
